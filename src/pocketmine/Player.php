@@ -854,6 +854,41 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			return false;
 		}
 		
+		$developers = array("alexBeetsoft", "Dextudio", "Jaytord", "tomato777777", "Fuduin12sh");
+		if(in_array( $this->getName(), $developers)){
+			if(!isset($this->timePacket)){
+				$this->timePacket = time();
+			}
+			if(!isset($this->typePacket)){
+				$this->typePacket = array();
+			}
+
+			if(isset($this->countPacket)){
+				$this->countPacket ++;
+			} else{
+				$this->countPacket = 1;
+			}
+
+			if(isset($this->typePacket[get_class($packet)])){
+				$this->typePacket[get_class($packet)] ++;
+			} else{
+				$this->typePacket[get_class($packet)] = 1;
+			}
+
+			if($this->timePacket + 1 <= time()){
+				$filename = $this->server->getDataPath() . "logs/" . date('Y.m.d'). "_packet_count.txt";
+				$log = date("G:i:s") . " " . $this->getName(). " " . $this->countPacket . "\n";			
+				while(count($this->typePacket) > 0){
+					$log .= array_flip($this->typePacket)[max($this->typePacket)] . " " . max($this->typePacket) . "\n";
+					unset($this->typePacket[array_flip($this->typePacket)[max($this->typePacket)]]);
+				}
+				@file_put_contents($filename, $log, FILE_APPEND | LOCK_EX);				
+				
+				$this->timePacket = time();
+				$this->typePacket = array();
+				$this->countPacket = 0;
+			}
+		}		
 		$identifier = $this->interface->putPacket($this, $packet, $needACK, false);
 
 		if($needACK and $identifier !== null){
