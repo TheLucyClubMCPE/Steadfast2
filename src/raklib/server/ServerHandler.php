@@ -25,16 +25,20 @@ class ServerHandler{
     protected $server;
     /** @var ServerInstance */
     protected $instance;
-
+	
     public function __construct(RakLibServer $server, ServerInstance $instance){
         $this->server = $server;
         $this->instance = $instance;
     }
-
-    public function sendEncapsulated($identifier, EncapsulatedPacket $packet, $flags = RakLib::PRIORITY_NORMAL){
+	
+	public function sendEncapsulated($identifier, EncapsulatedPacket $packet, $flags = RakLib::PRIORITY_NORMAL){
         $buffer = chr(RakLib::PACKET_ENCAPSULATED) . chr(strlen($identifier)) . $identifier . chr($flags) . $packet->toBinary(true);
         $this->server->pushMainToThreadPacket($buffer);
     }
+	
+	public function sendEncapsulatedObject($data){
+		$this->server->pushMainToThreadPacket($data);
+	}
 
     public function sendRaw($address, $port, $payload){
         $buffer = chr(RakLib::PACKET_RAW) . chr(strlen($address)) . $address . Binary::writeShort($port) . $payload;

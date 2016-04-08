@@ -37,6 +37,7 @@ use pocketmine\network\protocol\AddPlayerPacket;
 use pocketmine\network\protocol\RemovePlayerPacket;
 use pocketmine\Player;
 use pocketmine\level\Level;
+use pocketmine\event\Timings;
 
 class Human extends Creature implements ProjectileSource, InventoryHolder{
 
@@ -211,21 +212,9 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 	public function spawnTo(Player $player){
 		if($player !== $this and !isset($this->hasSpawned[$player->getId()])  and isset($player->usedChunks[Level::chunkHash($this->chunk->getX(), $this->chunk->getZ())])){
 			$this->hasSpawned[$player->getId()] = $player;
-
-//			if(strlen($this->skin) < 64 * 32 * 4){
-//				$this->server->getLogger()->info((new \ReflectionClass($this))->getShortName() . " must have a valid skin set");
-//			}
-
-
-//			if(!($this instanceof Player)){
+			Timings::$processQueueTimer->startTiming();
 			$this->server->updatePlayerListData($this->getUniqueId(), $this->getId(), $this->getName(), $this->skinName, $this->skin, [$player]);
-//			}
-
-//			$pk = new PlayerListPacket();
-//			$pk->type = PlayerListPacket::TYPE_ADD;
-//			$pk->entries[] = [$this->getUniqueId(), $this->getId(), $this->getName(), $this->skinName, $this->skin];
-//			$player->dataPacket($pk);
-
+			Timings::$processQueueTimer->stopTiming();
 			$pk = new AddPlayerPacket();
 			$pk->uuid = $this->getUniqueId();
 			$pk->username = $this->getName();

@@ -733,20 +733,24 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			$this->dataPacket($pk);
 
 			$this->noDamageTicks = 60;
-
+			//TODO timings
+			
+			Timings::$tickablesTimer->startTiming(); 			
+			$this->teleport($pos);
+			Timings::$tickablesTimer->stopTiming(); 
+			Timings::$generationTimer->startTiming(); //0,01 -0,02		
 			foreach($this->usedChunks as $index => $c){
 				Level::getXZ($index, $chunkX, $chunkZ);
-				foreach($this->level->getChunkEntities($chunkX, $chunkZ) as $entity){
+				$entities = $this->level->getChunkEntities($chunkX, $chunkZ);
+				foreach($entities as $entity){
 					if($entity !== $this and !$entity->closed and !$entity->dead){
 						$entity->spawnTo($this);
 					}
 				}
 			}
-
-			$this->teleport($pos);
-
 			$this->spawnToAll();
-
+			
+			Timings::$generationTimer->stopTiming();
 			if($this->getHealth() <= 0){
 				$pk = new RespawnPacket();
 				$pos = $this->getSpawn();
@@ -856,14 +860,12 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		if($ev->isCancelled()){
 			return false;
 		}
+		Timings::$timerEntityAIMove->startTiming();
 		
-		$identifier = $this->interface->putPacket($this, $packet, $needACK, false);
+		$this->interface->putPacket($this, $packet, $needACK, false);
 
-		if($needACK and $identifier !== null){
-			$this->needACK[$identifier] = false;
+		Timings::$timerEntityAIMove->stopTiming();
 
-			return $identifier;
-		}
 
 		return true;
 	}
@@ -883,13 +885,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			return false;
 		}
 
-		$identifier = $this->interface->putPacket($this, $packet, $needACK, true);
-
-		if($needACK and $identifier !== null){
-			$this->needACK[$identifier] = false;
-
-			return $identifier;
-		}
+		$this->interface->putPacket($this, $packet, $needACK, true);
 
 		return true;
 	}
@@ -1465,18 +1461,20 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		
 
 		$this->timings->startTiming();
+		Timings::$timerEntityTickRest->startTiming();
 		
 		
 		$this->checkTeleportPosition();
-
+		
 		if($this->nextChunkOrderRun-- <= 0 or $this->chunk === null){
 			$this->orderChunks();
 		}
-
+		Timings::$timerEntityTickRest->stopTiming();
+		
 		if(count($this->loadQueue) > 0 or !$this->spawned){
 			$this->sendNextChunk();
 		}
-
+		
 		if($this->dead === true and $this->spawned){
 			++$this->deadTicks;
 			if($this->deadTicks >= 10){
@@ -1515,7 +1513,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 					++$this->inAirTicks;
 				}
 			}
-
+			
 			if($this->starvationTick >= 20) {
 				$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_CUSTOM, 1);
 				$this->attack(1, $ev);
@@ -1554,7 +1552,10 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			if($this->getHealth() < $this->getMaxHealth()) {
 				$this->foodTick++;
 			}
+		
+			Timings::$timerEntityAICollision->startTiming();
 			$this->checkChunks();
+			Timings::$timerEntityAICollision->stopTiming();
 		}
 
 		$this->timings->stopTiming();
@@ -1641,6 +1642,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	 * @param DataPacket $packet
 	 */
 	public function handleDataPacket(DataPacket $packet){
+		//TODO timings
 		if($this->connected === false){
 			return;
 		}
@@ -3049,10 +3051,12 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			$this->hasSpawned = [];
 			$this->spawnPosition = null;
 			unset($this->buffer);
+			
+			$this->perm->clearPermissions();
+			$this->server->removePlayer($this);
 		}
 
-		$this->perm->clearPermissions();
-		$this->server->removePlayer($this);
+		
 	}
 
 	public function __debugInfo(){

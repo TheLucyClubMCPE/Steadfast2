@@ -251,8 +251,53 @@ class SessionManager{
     }
 
     public function receiveStream(){
-        if(strlen($packet = $this->server->readMainToThreadPacket()) > 0){
-            $id = ord($packet{0});
+        if(is_object($packet = $this->server->readMainToThreadPacket()) || strlen($packet) > 0){
+			//--------------------------------
+			if (is_object($packet)) {
+//				$identifier = $packet->identifier;
+//				$additionalChar = $packet->additionalChar;
+//				$fullPacket = $packet->packet;
+//				$needACK = $packet->needACK;
+//				$immediate = $packet->immediate;
+//				$identifierACK = $packet->identifierACK;
+//
+//				$pk = null;
+//				if (!$fullPacket->isEncoded) {
+//					$fullPacket->encode();
+//				}
+//				if (!$needACK) {
+//					if (isset($fullPacket->__encapsulatedPacket)) {
+//						unset($fullPacket->__encapsulatedPacket);
+//					}
+//					$fullPacket->__encapsulatedPacket = new \pocketmine\network\CachedEncapsulatedPacket();
+//					$fullPacket->__encapsulatedPacket->identifierACK = null;
+//					$fullPacket->__encapsulatedPacket->buffer = $additionalChar . $fullPacket->buffer;
+//					$fullPacket->__encapsulatedPacket->reliability = 2;
+//					$pk = $fullPacket->__encapsulatedPacket;
+//				}
+//
+//				if ($pk === null) {
+//					$pk = new EncapsulatedPacket();
+//					$pk->buffer = $additionalChar . $fullPacket->buffer;
+//					$pk->reliability = 2;
+//
+//					if ($needACK === true && $identifierACK !== false) {
+//						$pk->identifierACK = $identifierACK;
+//					}
+//				}
+//
+//				$flags = ($needACK === true ? RakLib::FLAG_NEED_ACK : RakLib::PRIORITY_NORMAL) | ($immediate === true ? RakLib::PRIORITY_IMMEDIATE : RakLib::PRIORITY_NORMAL);
+//
+//				$buffer = chr(RakLib::PACKET_ENCAPSULATED) . chr(strlen($identifier)) . $identifier . chr($flags) . $pk->toBinary(true);
+//				$packet = $buffer;
+				$identifier = $packet->identifier;
+				$pk = $packet->packet;
+				$flags = $packet->flag;
+				$buffer = chr(RakLib::PACKET_ENCAPSULATED) . chr(strlen($identifier)) . $identifier . chr($flags) . $pk->toBinary(true);
+				$packet = $buffer;
+			}
+			//--------------------------------
+			$id = ord($packet{0});
             $offset = 1;
             if($id === RakLib::PACKET_ENCAPSULATED){
                 $len = ord($packet{$offset++});

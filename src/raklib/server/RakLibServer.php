@@ -87,6 +87,7 @@ class RakLibServer extends \Thread{
     }
 
     public function shutdown(){
+		var_dump("shutdown raklib");
         $this->shutdown = true;
     }
 

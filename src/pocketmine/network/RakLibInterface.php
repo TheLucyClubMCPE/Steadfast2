@@ -59,7 +59,7 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 
 	/** @var ServerHandler */
 	private $interface;
-
+	
 	public $count = 0;
 	public $maxcount = 31360;
 	public $name = "Lifeboat Network";
@@ -237,6 +237,29 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 	 */
 	public function putPacket(Player $player, DataPacket $packet, $needACK = false, $immediate = false){
 		if(isset($this->identifiers[$player])){
+//			$additionalChar = $player->protocol <= ProtocolInfo::CURRENT_PROTOCOL ? '' : chr(0x8e);			
+//			$identifier = $this->identifiers[$player];
+//			$identifierACK = false;
+//			if($needACK === true){
+//				$identifierACK = $this->identifiersACK[$identifier]++;
+//			}		
+//			if (!$immediate and !$needACK && $packet->pid() !== ProtocolInfo::BATCH_PACKET && Network::$BATCH_THRESHOLD >= 0) {
+//				if (!$packet->isEncoded) {
+//					$packet->encode();
+//				}
+//				if (strlen($packet->buffer) >= Network::$BATCH_THRESHOLD) {
+//					$this->server->batchPackets([$player], [$packet], true);
+//					return;
+//				}
+//			}
+//			$data = new \stdClass();
+//			$data->identifier = $identifier;
+//			$data->additionalChar = $additionalChar;
+//			$data->packet = $packet;
+//			$data->needACK = $needACK;
+//			$data->immediate = $immediate;
+//			$data->identifierACK = $identifierACK;
+//			$this->interface->sendEncapsulatedObject($data);
 			$additionalChar = $player->protocol <= ProtocolInfo::CURRENT_PROTOCOL ? '' : chr(0x8e);
 			
 			$identifier = $this->identifiers[$player];
@@ -271,12 +294,12 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 				}
 			}
 
-			$this->interface->sendEncapsulated($identifier, $pk, ($needACK === true ? RakLib::FLAG_NEED_ACK : 0) | ($immediate === true ? RakLib::PRIORITY_IMMEDIATE : RakLib::PRIORITY_NORMAL));
-
-			return $pk->identifierACK;
+			$data = new \stdClass();
+			$data->identifier = $identifier;
+			$data->packet = $pk;
+			$data->flag = ($needACK === true ? RakLib::FLAG_NEED_ACK : 0) | ($immediate === true ? RakLib::PRIORITY_IMMEDIATE : RakLib::PRIORITY_NORMAL);
+			$this->interface->sendEncapsulatedObject($data);
 		}
-
-		return null;
 	}
 
 	private function getPacket($buffer){

@@ -1571,7 +1571,7 @@ abstract class Entity extends Location implements Metadatable{
 	}
 
 	public function spawnToAll(){
-		$this->despawnFromAll();
+		//$this->despawnFromAll();
 		if($this->chunk === null or $this->closed){
 			return false;
 		}

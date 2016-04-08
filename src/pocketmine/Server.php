@@ -112,6 +112,7 @@ use pocketmine\utils\TextWrapper;
 use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use pocketmine\utils\VersionString;
+use pocketmine\tasks\BatchPacketTask;
 
 /**
  * The class that manages everything
@@ -1476,7 +1477,8 @@ class Server{
 
 		$this->pluginManager = new PluginManager($this, $this->commandMap);
 		$this->pluginManager->subscribeToPermission(Server::BROADCAST_CHANNEL_ADMINISTRATIVE, $this->consoleSender);
-		$this->pluginManager->setUseTimings($this->getProperty("settings.enable-profiling", false));
+		//$this->pluginManager->setUseTimings($this->getProperty("settings.enable-profiling", false));
+		$this->pluginManager->setUseTimings(true);
 		$this->pluginManager->registerInterface(PharPluginLoader::class);
 
 		\set_exception_handler([$this, "exceptionHandler"]);
@@ -1696,11 +1698,14 @@ class Server{
 	 * @param bool                 $forceSync
 	 */
 	public function batchPackets(array $players, array $packets, $forceSync = true){
+		$targets = [];
+		foreach($players as $p){
+			$targets[] = $this->identifiers[spl_object_hash($p)];
+		}
 		$str = "";
-
 		foreach($packets as $p){
 			if($p instanceof DataPacket){
-				if(!$p->isEncoded){
+				if(!$p->isEncoded){					
 					$p->encode();
 				}
 				$str .= Binary::writeInt(strlen($p->buffer)) . $p->buffer;
@@ -1708,13 +1713,8 @@ class Server{
 				$str .= Binary::writeInt(strlen($p)) . $p;
 			}
 		}
-
-		$targets = [];
-		foreach($players as $p){
-			$targets[] = $this->identifiers[spl_object_hash($p)];
-		}
-
-		$this->broadcastPacketsCallback(zlib_encode($str, ZLIB_ENCODING_DEFLATE, $this->networkCompressionLevel), $targets);
+		$this->scheduler->scheduleAsyncTask(new BatchPacketTask($str, $targets, $this->networkCompressionLevel));
+//		$this->broadcastPacketsCallback(zlib_encode($str, ZLIB_ENCODING_DEFLATE, $this->networkCompressionLevel), $targets);
 	}
 
 	public function broadcastPacketsCallback($data, array $identifiers){
@@ -2270,12 +2270,21 @@ class Server{
 	/**
 	 * Tries to execute a server tick
 	 */
+	
+	// Connection Handler Time: 0.10821294784546
+	// VipLounge\VIPLoungeGuardsTask(interval:5) Time: 0.015117883682251
+	// pocketmine\scheduler\GarbageCollectionTask(interval:900) Time: 0.044304132461548
+	
+	// syncChunkLoad - Data Time: 0.093223810195923 Count: 3 Avg: 0.031074603398641
+	// Player List Time: 0.028447389602661 Count: 45 Avg: 0.00063216421339247
 	private function tick(){
 		$tickTime = microtime(true);
 		if($tickTime < $this->nextTick){
 			return false;
 		}
 
+		TimingsHandler::reload();
+		
 		Timings::$serverTickTimer->startTiming();
 
 		++$this->tickCounter;
@@ -2326,7 +2335,15 @@ class Server{
 			$this->nextTick = $tickTime;
 		}
 		$this->nextTick += 0.05;
+		if(microtime(true) - $tickTime > 0.05){
+			$timingFolder = $this->getDataPath() . "timings/";
 
+			if(!file_exists($timingFolder)){
+				mkdir($timingFolder, 0777);
+			}
+			$timings = $timingFolder . "timings.txt";
+			TimingsHandler::printTimings($timings);
+		}
 		return true;
 	}
 
