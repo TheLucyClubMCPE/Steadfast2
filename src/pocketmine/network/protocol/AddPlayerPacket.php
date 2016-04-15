@@ -42,7 +42,7 @@ class AddPlayerPacket extends DataPacket{
 	public $speedZ;
 	public $pitch;
 	public $yaw;
-	public $item;
+//	public $item;
 	public $metadata;
 
 	public function decode(){

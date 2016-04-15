@@ -81,7 +81,7 @@ class ChunkRequestTask extends AsyncTask {
 		}
 		$res = new \stdClass();
 		$res->result = $result;
-		$this->setResult($res, false);	
+		$this->setResult($res);	
 		unset($this->data);
 	}
 	

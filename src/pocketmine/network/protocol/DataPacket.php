@@ -85,4 +85,20 @@ abstract class DataPacket extends BinaryStream{
 
 		return $data;
 	}
+	
+	public function __clone() {
+		foreach (get_object_vars($this) as $key => $val) {
+			if (is_object($val)) {
+				$this->{$key} = clone $val;
+			}
+			if (is_array($val)) {
+				foreach ($val as $key2 => $val2) {
+					if (is_object($val2)) {
+						$this->{$key}[$key2] = clone $val2;
+					}
+				}
+			}
+		}
+	}
+
 }

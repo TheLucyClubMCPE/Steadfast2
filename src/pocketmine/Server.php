@@ -112,6 +112,8 @@ use pocketmine\utils\TextWrapper;
 use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use pocketmine\utils\VersionString;
+use pocketmine\network\protocol\Info;
+use pocketmine\network\PacketSendTask;
 
 /**
  * The class that manages everything
@@ -239,6 +241,8 @@ class Server{
 
 	/** @var Level */
 	private $levelDefault = null;
+	
+	private $packetToSendQueue = array();
 
 	/**
 	 * @return string
@@ -1696,27 +1700,18 @@ class Server{
 	 * @param bool                 $forceSync
 	 */
 	public function batchPackets(array $players, array $packets, $forceSync = true){
-		$str = "";
-
-		foreach($packets as $p){
-			if($p instanceof DataPacket){
-				if(!$p->isEncoded){
-					$p->encode();
-				}
-				$str .= Binary::writeInt(strlen($p->buffer)) . $p->buffer;
-			}else{
-				$str .= Binary::writeInt(strlen($p)) . $p;
-			}
-		}
-
 		$targets = [];
 		foreach($players as $p){
-			$targets[] = $this->identifiers[spl_object_hash($p)];
+			$targets[] = array($p->getIdentifier(), $p->protocol <= Info::CURRENT_PROTOCOL ? '' : chr(0x8e));
 		}
-
-		$this->broadcastPacketsCallback(zlib_encode($str, ZLIB_ENCODING_DEFLATE, $this->networkCompressionLevel), $targets);
+		$data = new \stdClass();
+		$data->packets = $packets;
+		$data->targets = $targets;
+		$data->networkCompressionLevel = $this->networkCompressionLevel;
+		$data->isBatch = true;
+		$this->addPacketToSendQueue($data);
 	}
-
+	
 	public function broadcastPacketsCallback($data, array $identifiers){
 		$pk = new BatchPacket();
 		$pk->payload = $data;
@@ -2141,14 +2136,15 @@ class Server{
 				$pk->addShapedRecipe($recipe);
 			}elseif($recipe instanceof ShapelessRecipe){
 				$pk->addShapelessRecipe($recipe);
-			}
+	}
 		}
 
 		foreach($this->getCraftingManager()->getFurnaceRecipes() as $recipe){
 			$pk->addFurnaceRecipe($recipe);
 		}
-
-		$p->dataPacket($pk);
+		
+		$this->batchPackets([$p], [$pk]);
+//		$p->dataPacket($pk);
 	}
 
 	public function addPlayer($identifier, Player $player){
@@ -2310,7 +2306,12 @@ class Server{
 				$level->clearCache();
 			}
 		}
-
+		
+		if(count($this->packetToSendQueue) > 0){
+			$task = new PacketSendTask($this->packetToSendQueue);
+			$this->scheduler->scheduleAsyncTask($task);
+			$this->packetToSendQueue = array();
+		}
 
 		Timings::$serverTickTimer->stopTiming();
 
@@ -2363,6 +2364,14 @@ class Server{
 		}
 
 		$this->players = $random;
+	}
+	
+	public function sendPacketBuffer($buffer) {
+		$this->mainInterface->putReadyPacket($buffer);
+	}
+	
+	public function addPacketToSendQueue($data){
+		$this->packetToSendQueue[] = $data;
 	}
 
 }

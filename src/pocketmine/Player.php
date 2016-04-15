@@ -242,8 +242,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	private $checkMovement;
 	protected $allowFlight = false;
 
-	private $needACK = [];
-
 	/**
 	 * @var \pocketmine\scheduler\TaskHandler[]
 	 */
@@ -254,6 +252,8 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	
 	/** @var string*/
 	protected $lastMessageReceivedFrom = "";
+	
+	protected $identifier;
 
 	public function getLeaveMessage(){
 		return "";
@@ -846,23 +846,51 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	 *
 	 * @return int|bool
 	 */
-	public function dataPacket(DataPacket $packet, $needACK = false){
+	public function dataPacket(DataPacket $packet, $needACK = false){	
 		if($this->connected === false){
 			return false;
 		}
+//		$haveObject = false;
 		$this->server->getPluginManager()->callEvent($ev = new DataPacketSendEvent($this, $packet));
 		if($ev->isCancelled()){
 			return false;
 		}
+//		foreach(get_object_vars($packet) as $key => $val){
+//			if(is_object($packet->{$key})){
+//				$haveObject = true;
+//				break;
+//			}
+//			if(is_array($packet->{$key})){
+//				foreach($packet->{$key} as $val2) {
+//					if(is_object($val2)){
+//						$haveObject = true;
+//						break 2;
+//					}
+//				}
+//			}
+//		}
+//
+//		$classes = array('pocketmine\network\protocol\AddPlayerPacket', 'pocketmine\network\protocol\RemovePlayerPacket', 'pocketmine\network\protocol\AddItemEntityPacket', 'pocketmine\network\protocol\ContainerSetContentPacket', 'pocketmine\network\protocol\ContainerSetSlotPacket', 'pocketmine\network\protocol\MobArmorEquipmentPacket', 'pocketmine\network\protocol\MobEquipmentPacket');
+//		if($haveObject) {
+//			if(!in_array(get_class($packet), $classes)){ 
+//				var_dump(get_class($packet));
+//			}
+//			$this->interface->putPacket($this, $packet, $needACK, false);
+//			return true;
+//		}
 		
-		$identifier = $this->interface->putPacket($this, $packet, $needACK, false);
-
-		if($needACK and $identifier !== null){
-			$this->needACK[$identifier] = false;
-
-			return $identifier;
+		$data = new \stdClass();
+		$data->additionalChar = $this->protocol <= ProtocolInfo::CURRENT_PROTOCOL ? '' : chr(0x8e);
+		$data->identifier = $this->identifier;
+		$data->packet = clone $packet;
+		$data->needACK = $needACK;
+		$data->identifierACK = false;
+		if($needACK) {
+			$data->identifierACK = $this->interface->getACKIdentifier($this->identifier);
 		}
+		$data->isBatch = false;
 
+		$this->server->addPacketToSendQueue($data);
 		return true;
 	}
 
@@ -881,13 +909,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			return false;
 		}
 
-		$identifier = $this->interface->putPacket($this, $packet, $needACK, true);
-
-		if($needACK and $identifier !== null){
-			$this->needACK[$identifier] = false;
-
-			return $identifier;
-		}
+		$this->interface->putPacket($this, $packet, $needACK, true);
 
 		return true;
 	}
@@ -2978,6 +3000,17 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	 */
 	public function close($message = "", $reason = "generic reason"){
 		
+//		$thread = \Thread::getCurrentThread();
+//		if($thread !== null){
+//			$backtrace = debug_backtrace(0, 30);
+//			$result = '';
+//			foreach ($backtrace as $k => $v) {
+//				$result .= "[line ".$backtrace[$k]['line']."] ".$backtrace[$k]['class']." -> ".$backtrace[$k]['function'].PHP_EOL;
+//			}
+//			var_dump($result);
+//			return;
+//		}
+		
 		foreach($this->tasks as $task){
 			$task->cancel();
 		}
@@ -3485,4 +3518,11 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		return $this->lastMessageReceivedFrom;
 	}
 	
+	public function setIdentifier($identifier){
+		$this->identifier = $identifier;
+	}
+	
+	public function getIdentifier(){
+		return $this->identifier;
+	}
 }

@@ -23,6 +23,7 @@ namespace pocketmine\scheduler;
 
 use pocketmine\Server;
 use pocketmine\level\format\mcregion\ChunkRequestTask;
+use pocketmine\network\PacketSendTask;
 
 class AsyncPool{
 
@@ -57,6 +58,12 @@ class AsyncPool{
 			$this->workers[$i]->setClassLoader($this->server->getLoader());
 			$this->workers[$i]->start();
 		}
+		for($i = $this->size + 2; $i < $this->size + 4; ++$i){
+			$this->workerUsage[$i] = 0;
+			$this->workers[$i] = new AsyncWorker();
+			$this->workers[$i]->setClassLoader($this->server->getLoader());
+			$this->workers[$i]->start();
+		}
 	}
 
 	public function submitTask(AsyncTask $task){
@@ -70,6 +77,12 @@ class AsyncPool{
 				$selectedWorker = $this->size;
 			} else {
 				$selectedWorker = $this->size + 1;
+			}
+		} elseif($task instanceof PacketSendTask) {
+			if($this->workerUsage[$this->size + 2] <= $this->workerUsage[$this->size + 3]){
+				$selectedWorker = $this->size + 2;
+			} else {
+				$selectedWorker = $this->size + 3;
 			}
 		} else {
 			$selectedWorker = mt_rand(0, $this->size - 1);
@@ -105,7 +118,7 @@ class AsyncPool{
 			$this->removeTask($task);
 		}
 
-		for($i = 0; $i < $this->size + 2; ++$i){
+		for($i = 0; $i < $this->size + 4; ++$i){
 			$this->workerUsage[$i] = 0;
 		}
 
