@@ -733,20 +733,18 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			$this->dataPacket($pk);
 
 			$this->noDamageTicks = 60;
-
+			
 			foreach($this->usedChunks as $index => $c){
 				Level::getXZ($index, $chunkX, $chunkZ);
 				foreach($this->level->getChunkEntities($chunkX, $chunkZ) as $entity){
-					if($entity !== $this and !$entity->closed and !$entity->dead){
+					if($entity !== $this && !$entity->closed && !$entity->dead){
 						$entity->spawnTo($this);
 					}
 				}
 			}
 
 			$this->teleport($pos);
-
-			$this->spawnToAll();
-
+			
 			if($this->getHealth() <= 0){
 				$pk = new RespawnPacket();
 				$pos = $this->getSpawn();
@@ -1045,8 +1043,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		
 		if($this->isSpectator()){
 			$this->despawnFromAll();
-		}else{
-			$this->spawnToAll();
 		}
 
 		$this->namedtag->playerGameType = new IntTag("playerGameType", $this->gamemode);
@@ -1468,15 +1464,15 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		
 		
 		$this->checkTeleportPosition();
-
+		
 		if($this->nextChunkOrderRun-- <= 0 or $this->chunk === null){
 			$this->orderChunks();
 		}
-
+		
 		if(count($this->loadQueue) > 0 or !$this->spawned){
 			$this->sendNextChunk();
 		}
-
+		
 		if($this->dead === true and $this->spawned){
 			++$this->deadTicks;
 			if($this->deadTicks >= 10){
@@ -1515,7 +1511,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 					++$this->inAirTicks;
 				}
 			}
-
+			
 			if($this->starvationTick >= 20) {
 				$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_CUSTOM, 1);
 				$this->attack(1, $ev);
@@ -2271,7 +2267,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 
 						$this->blocked = false;
 
-						$this->spawnToAll();
 						$this->scheduleUpdate();
 						
 						$this->server->getPluginManager()->callEvent(new PlayerRespawnAfterEvent($this));
@@ -2982,17 +2977,11 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	 * @param string $reason  Reason showed in console
 	 */
 	public function close($message = "", $reason = "generic reason"){
-
+		
 		foreach($this->tasks as $task){
 			$task->cancel();
 		}
 		$this->tasks = [];
-		$logs = explode("|delemiter|", $reason);
-		$log = "";
-		if(count($logs) > 1){
-			$reason = $logs[0];
-			$log = $logs[1];
-		}
 		if($this->connected and !$this->closed){
 			if($reason != ""){
 				$pk = new DisconnectPacket;
@@ -3002,7 +2991,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 
 			$this->connected = false;
 			if($this->username != ""){
-				$this->server->getPluginManager()->callEvent($ev = new PlayerQuitEvent($this, $message, $reason, $log));
+				$this->server->getPluginManager()->callEvent($ev = new PlayerQuitEvent($this, $message, $reason));
 				if($this->server->getAutoSave() and $this->loggedIn === true){
 					$this->save();
 				}
@@ -3050,9 +3039,9 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			$this->spawnPosition = null;
 			unset($this->buffer);
 		}
-
-		$this->perm->clearPermissions();
-		$this->server->removePlayer($this);
+			
+			$this->perm->clearPermissions();
+			$this->server->removePlayer($this);
 	}
 
 	public function __debugInfo(){
@@ -3383,7 +3372,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			}
 
 			$this->sendPosition($this, $this->pitch, $this->yaw, 1);
-			$this->spawnToAll();
 			$this->forceMovement = $this->teleportPosition;
 			$this->teleportPosition = null;
 
@@ -3412,8 +3400,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 
 			if(!$this->checkTeleportPosition()){
 				$this->forceMovement = $oldPos;
-			}else{
-				$this->spawnToAll();
 			}
 
 
