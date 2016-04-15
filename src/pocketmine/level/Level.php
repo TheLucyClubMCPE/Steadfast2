@@ -100,6 +100,7 @@ use pocketmine\utils\LevelException;
 use pocketmine\utils\MainLogger;
 use pocketmine\utils\ReversePriorityQueue;
 use pocketmine\utils\TextFormat;
+use pocketmine\level\format\mcregion\ChunkRequestTask;
 
 
 
@@ -196,6 +197,7 @@ class Level implements ChunkManager, Metadatable{
 	private $blockStates;
 	protected $playerHandItemQueue = array();
 
+	protected $chunkQueue = array();
 	protected $chunkTickRadius;
 	protected $chunkTickList = [];
 	protected $chunksPerTick;
@@ -685,7 +687,12 @@ class Level implements ChunkManager, Metadatable{
 				}
 			}
 		}
-
+		
+		if(count($this->chunkQueue) > 0){
+			$task = new ChunkRequestTask($this->getId(), $this->chunkQueue);
+			$this->server->getScheduler()->scheduleAsyncTask($task);
+			$this->chunkQueue = array();
+		}
 		$this->timings->doTick->stopTiming();
 	}
 
@@ -2515,5 +2522,10 @@ class Level implements ChunkManager, Metadatable{
 		}
 		return true;
 	}
+	
+	
+	public function addChunkQueue($data, $index){
+		$this->chunkQueue[$index] = $data;
+	}	
 	
 }

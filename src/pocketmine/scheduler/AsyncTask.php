@@ -36,6 +36,8 @@ abstract class AsyncTask extends Collectable{
 	private $taskId = null;
 	
 	protected $isFinished = false;
+	
+	private $serialized = false;
 
 	public function run(){
 		$this->result = null;
@@ -111,7 +113,7 @@ abstract class AsyncTask extends Collectable{
 	 * @return mixed
 	 */
 	public function getResult(){
-		return unserialize($this->result);
+		return $this->serialized ? unserialize($this->result) : $this->result;
 	}
 
 	/**
@@ -124,8 +126,9 @@ abstract class AsyncTask extends Collectable{
 	/**
 	 * @param mixed $result
 	 */
-	public function setResult($result){
-		$this->result = serialize($result);
+	public function setResult($result, $serialize = true){
+		$this->result = $serialize ? serialize($result) : $result;
+		$this->serialized = $serialize;
 	}
 
 	public function setTaskId($taskId){
