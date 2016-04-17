@@ -869,8 +869,15 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 //				}
 //			}
 //		}
-//
-//		$classes = array('pocketmine\network\protocol\AddPlayerPacket', 'pocketmine\network\protocol\RemovePlayerPacket', 'pocketmine\network\protocol\AddItemEntityPacket', 'pocketmine\network\protocol\ContainerSetContentPacket', 'pocketmine\network\protocol\ContainerSetSlotPacket', 'pocketmine\network\protocol\MobArmorEquipmentPacket', 'pocketmine\network\protocol\MobEquipmentPacket');
+//	'pocketmine\network\protocol\AddPlayerPacket', 'pocketmine\network\protocol\RemovePlayerPacket', 'pocketmine\network\protocol\AddItemEntityPacket', 
+		//ContainerSetContentPacket
+		//ContainerSetSlotPacket
+		//MobEquipmentPacket
+//		$classes = array('pocketmine\network\protocol\ContainerSetContentPacket', 'pocketmine\network\protocol\ContainerSetSlotPacket', 'pocketmine\network\protocol\MobArmorEquipmentPacket', 'pocketmine\network\protocol\MobEquipmentPacket');
+//		if(in_array(get_class($packet), $classes)){ 
+//			$this->interface->putPacket($this, $packet, $needACK, false);
+//			return true;
+//		}
 //		if($haveObject) {
 //			if(!in_array(get_class($packet), $classes)){ 
 //				var_dump(get_class($packet));
@@ -882,7 +889,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		$data = new \stdClass();
 		$data->additionalChar = $this->protocol <= ProtocolInfo::CURRENT_PROTOCOL ? '' : chr(0x8e);
 		$data->identifier = $this->identifier;
-		$data->packet = clone $packet;
+		$data->packet = $packet->clearObject();
 		$data->needACK = $needACK;
 		$data->identifierACK = false;
 		if($needACK) {
@@ -3000,16 +3007,16 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	 */
 	public function close($message = "", $reason = "generic reason"){
 		
-//		$thread = \Thread::getCurrentThread();
-//		if($thread !== null){
-//			$backtrace = debug_backtrace(0, 30);
-//			$result = '';
-//			foreach ($backtrace as $k => $v) {
-//				$result .= "[line ".$backtrace[$k]['line']."] ".$backtrace[$k]['class']." -> ".$backtrace[$k]['function'].PHP_EOL;
-//			}
-//			var_dump($result);
-//			return;
-//		}
+		$thread = \Thread::getCurrentThread();
+		if($thread !== null){
+			$backtrace = debug_backtrace(0, 30);
+			$result = '';
+			foreach ($backtrace as $k => $v) {
+				$result .= "[line ".$backtrace[$k]['line']."] ".$backtrace[$k]['class']." -> ".$backtrace[$k]['function'].PHP_EOL;
+			}
+			var_dump($result);
+			return;
+		}
 		
 		foreach($this->tasks as $task){
 			$task->cancel();
@@ -3020,6 +3027,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 				$pk = new DisconnectPacket;
 				$pk->message = $reason;
 				$this->directDataPacket($pk);
+//				$this->dataPacket($pk);
 			}
 
 			$this->connected = false;

@@ -48,4 +48,9 @@ class ContainerSetSlotPacket extends DataPacket{
 		$this->putShort($this->hotbarSlot);
 		$this->putSlot($this->item);
 	}
+	
+	public function clearObject(){
+		$this->item->clearItem();
+		return $this;
+	}
 }

@@ -2275,6 +2275,12 @@ class Server{
 		Timings::$serverTickTimer->startTiming();
 
 		++$this->tickCounter;
+		
+		if(count($this->packetToSendQueue) > 0){
+			$task = new PacketSendTask($this->packetToSendQueue);
+			$this->scheduler->scheduleAsyncTask($task);
+			$this->packetToSendQueue = array();
+		}
 
 		$this->checkConsole();
 
@@ -2305,12 +2311,6 @@ class Server{
 			foreach($this->levels as $level){
 				$level->clearCache();
 			}
-		}
-		
-		if(count($this->packetToSendQueue) > 0){
-			$task = new PacketSendTask($this->packetToSendQueue);
-			$this->scheduler->scheduleAsyncTask($task);
-			$this->packetToSendQueue = array();
 		}
 
 		Timings::$serverTickTimer->stopTiming();

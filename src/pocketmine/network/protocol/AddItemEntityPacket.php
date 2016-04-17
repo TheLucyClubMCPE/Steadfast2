@@ -51,5 +51,10 @@ class AddItemEntityPacket extends DataPacket{
 		$this->putFloat($this->speedY);
 		$this->putFloat($this->speedZ);
 	}
+	
+	public function clearObject(){
+		$this->item->clearItem();
+		return $this;
+	}
 
 }

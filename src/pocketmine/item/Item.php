@@ -1353,5 +1353,11 @@ class Item{
 
 		return false;
 	}
+	
+	public function clearItem(){
+		$this->block = null;
+		$this->cachedNBT = null;
+		$this->tags = "";
+	}
 
 }

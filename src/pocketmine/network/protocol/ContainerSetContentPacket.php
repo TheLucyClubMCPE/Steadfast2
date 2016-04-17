@@ -71,5 +71,12 @@ class ContainerSetContentPacket extends DataPacket{
 			$this->putShort(0);
 		}
 	}
+	
+	public function clearObject(){
+		foreach($this->slots as $slot){
+			$slot->clearItem();
+		}
+		return $this;
+	}
 
 }

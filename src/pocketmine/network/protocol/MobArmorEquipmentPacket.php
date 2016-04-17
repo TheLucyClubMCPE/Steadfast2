@@ -46,5 +46,12 @@ class MobArmorEquipmentPacket extends DataPacket{
 		$this->putSlot($this->slots[2]);
 		$this->putSlot($this->slots[3]);
 	}
+	
+	public function clearObject(){
+		foreach($this->slots as $slot){
+			$slot->clearItem();
+		}
+		return $this;
+	}
 
 }

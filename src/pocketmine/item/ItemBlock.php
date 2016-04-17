@@ -38,7 +38,9 @@ class ItemBlock extends Item{
 	}
 
 	public function __clone(){
-		$this->block = clone $this->block;
+		if(is_object($this->block)) {
+			$this->block = clone $this->block;
+		}
 	}
 
 	public function getBlock(){

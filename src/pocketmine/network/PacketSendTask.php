@@ -44,6 +44,7 @@ class PacketSendTask extends AsyncTask {
 		$result = array();	
 		foreach ($this->data->data as $data) {
 			if($data->isBatch) {
+				$str = "";
 				foreach($data->packets as $p){
 					if($p instanceof DataPacket){
 						if(!$p->isEncoded){					

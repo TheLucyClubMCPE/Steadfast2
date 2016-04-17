@@ -61,5 +61,10 @@ class MobEquipmentPacket extends DataPacket{
 		} 
 		return false;
 	}
+	
+	public function clearObject(){
+		$this->item->clearItem();
+		return $this;
+	}
 
 }
