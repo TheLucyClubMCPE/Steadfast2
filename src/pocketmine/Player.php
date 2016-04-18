@@ -254,6 +254,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	protected $lastMessageReceivedFrom = "";
 	
 	protected $identifier;
+	protected $packetSendNumber;
 
 	public function getLeaveMessage(){
 		return "";
@@ -850,42 +851,12 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		if($this->connected === false){
 			return false;
 		}
-//		$haveObject = false;
+
 		$this->server->getPluginManager()->callEvent($ev = new DataPacketSendEvent($this, $packet));
 		if($ev->isCancelled()){
 			return false;
 		}
-//		foreach(get_object_vars($packet) as $key => $val){
-//			if(is_object($packet->{$key})){
-//				$haveObject = true;
-//				break;
-//			}
-//			if(is_array($packet->{$key})){
-//				foreach($packet->{$key} as $val2) {
-//					if(is_object($val2)){
-//						$haveObject = true;
-//						break 2;
-//					}
-//				}
-//			}
-//		}
-//	'pocketmine\network\protocol\AddPlayerPacket', 'pocketmine\network\protocol\RemovePlayerPacket', 'pocketmine\network\protocol\AddItemEntityPacket', 
-		//ContainerSetContentPacket
-		//ContainerSetSlotPacket
-		//MobEquipmentPacket
-//		$classes = array('pocketmine\network\protocol\ContainerSetContentPacket', 'pocketmine\network\protocol\ContainerSetSlotPacket', 'pocketmine\network\protocol\MobArmorEquipmentPacket', 'pocketmine\network\protocol\MobEquipmentPacket');
-//		if(in_array(get_class($packet), $classes)){ 
-//			$this->interface->putPacket($this, $packet, $needACK, false);
-//			return true;
-//		}
-//		if($haveObject) {
-//			if(!in_array(get_class($packet), $classes)){ 
-//				var_dump(get_class($packet));
-//			}
-//			$this->interface->putPacket($this, $packet, $needACK, false);
-//			return true;
-//		}
-		
+
 		$data = new \stdClass();
 		$data->additionalChar = $this->protocol <= ProtocolInfo::CURRENT_PROTOCOL ? '' : chr(0x8e);
 		$data->identifier = $this->identifier;
@@ -897,7 +868,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		}
 		$data->isBatch = false;
 
-		$this->server->addPacketToSendQueue($data);
+		$this->server->addPacketToSendQueue($data, $this->packetSendNumber);
 		return true;
 	}
 
@@ -3532,5 +3503,13 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	
 	public function getIdentifier(){
 		return $this->identifier;
+	}
+	
+	public function setPacketSendNumber($val) {
+		$this->packetSendNumber = $val;
+	}
+	
+	public function getPacketSendNumber() {
+		return $this->packetSendNumber;
 	}
 }

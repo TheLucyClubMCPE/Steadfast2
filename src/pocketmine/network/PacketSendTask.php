@@ -41,37 +41,48 @@ class PacketSendTask extends AsyncTask {
 	}
 
 	public function onRun() {
+		
+		$a = microtime(true);
 		$result = array();	
-		foreach ($this->data->data as $data) {
-			if($data->isBatch) {
-				$str = "";
-				foreach($data->packets as $p){
-					if($p instanceof DataPacket){
-						if(!$p->isEncoded){					
-							$p->encode();
+		try{
+			foreach ($this->data->data as $data) {
+				if($data->isBatch) {
+					$str = "";
+					foreach($data->packets as $p){
+						if($p instanceof DataPacket){
+							if(!$p->isEncoded){					
+								$p->encode();
+							}
+							$str .= Binary::writeInt(strlen($p->buffer)) . $p->buffer;
+						}else{
+							$str .= Binary::writeInt(strlen($p)) . $p;
 						}
-						$str .= Binary::writeInt(strlen($p->buffer)) . $p->buffer;
-					}else{
-						$str .= Binary::writeInt(strlen($p)) . $p;
 					}
+
+					$buffer = zlib_encode($str, ZLIB_ENCODING_DEFLATE, $data->networkCompressionLevel);
+					$pk = new BatchPacket();
+					$pk->payload = $buffer;
+					$pk->encode();
+					$pk->isEncoded = true;
+					foreach($data->targets as $target){
+						$result[] = $this->makeBuffer($target[0], $target[1], $pk, false, false);
+					}
+				} else {
+					$result[] = $this->makeBuffer($data->identifier, $data->additionalChar, $data->packet, $data->needACK, $data->identifierACK);;
 				}
-				
-				$buffer = zlib_encode($str, ZLIB_ENCODING_DEFLATE, $data->networkCompressionLevel);
-				$pk = new BatchPacket();
-				$pk->payload = $buffer;
-				$pk->encode();
-				$pk->isEncoded = true;
-				foreach($data->targets as $target){
-					$result[] = $this->makeBuffer($target[0], $target[1], $pk, false, false);
-				}
-			} else {
-				$result[] = $this->makeBuffer($data->identifier, $data->additionalChar, $data->packet, $data->needACK, $data->identifierACK);;
 			}
+		}catch(\Exception $e){
+			var_dump($e->getMessage());
 		}
 		$res = new \stdClass();
 		$res->result = $result;
 		$this->setResult($res);
 		unset($this->data);
+		$a = microtime(true) - $a;
+		if($a > 0.04) {
+			@file_put_contents("packet_send.log", $a . "\n",  FILE_APPEND | LOCK_EX);
+		}
+		
 	}
 
 	public function onCompletion(Server $server) {

@@ -49,19 +49,19 @@ class AsyncPool{
 		for($i = 0; $i < $this->size; ++$i){
 			$this->workerUsage[$i] = 0;
 			$this->workers[$i] = new AsyncWorker();
-			$this->workers[$i]->setClassLoader($this->server->getLoader());
+//			$this->workers[$i]->setClassLoader($this->server->getLoader());
 			$this->workers[$i]->start();
 		}
 		for($i = $this->size; $i < $this->size + 2; ++$i){
 			$this->workerUsage[$i] = 0;
 			$this->workers[$i] = new AsyncWorker();
-			$this->workers[$i]->setClassLoader($this->server->getLoader());
+//			$this->workers[$i]->setClassLoader($this->server->getLoader());
 			$this->workers[$i]->start();
 		}
-		for($i = $this->size + 2; $i < $this->size + 4; ++$i){
+		for($i = $this->size + 2; $i < $this->size + 5; ++$i){
 			$this->workerUsage[$i] = 0;
 			$this->workers[$i] = new AsyncWorker();
-			$this->workers[$i]->setClassLoader($this->server->getLoader());
+//			$this->workers[$i]->setClassLoader($this->server->getLoader());
 			$this->workers[$i]->start();
 		}
 	}
@@ -79,10 +79,13 @@ class AsyncPool{
 				$selectedWorker = $this->size + 1;
 			}
 		} elseif($task instanceof PacketSendTask) {
-			if($this->workerUsage[$this->size + 2] <= $this->workerUsage[$this->size + 3]){
-				$selectedWorker = $this->size + 2;
-			} else {
-				$selectedWorker = $this->size + 3;
+			$selectedWorker = mt_rand($this->size + 2, $this->size + 4);
+			$selectedTasks = $this->workerUsage[$selectedWorker];
+			for($i = $this->size + 2; $i < $this->size + 5; ++$i){
+				if($this->workerUsage[$i] < $selectedTasks){
+					$selectedWorker = $i;
+					$selectedTasks = $this->workerUsage[$i];
+				}
 			}
 		} else {
 			$selectedWorker = mt_rand(0, $this->size - 1);
@@ -109,8 +112,7 @@ class AsyncPool{
 		}
 
 		unset($this->tasks[$task->getTaskId()]);
-		unset($this->taskWorkers[$task->getTaskId()]);
-		$task->setGarbage();
+		unset($this->taskWorkers[$task->getTaskId()]);	
 	}
 
 	public function removeTasks(){
@@ -118,7 +120,7 @@ class AsyncPool{
 			$this->removeTask($task);
 		}
 
-		for($i = 0; $i < $this->size + 4; ++$i){
+		for($i = 0; $i < $this->size + 5; ++$i){
 			$this->workerUsage[$i] = 0;
 		}
 
@@ -132,10 +134,8 @@ class AsyncPool{
 				$task->onCompletion($this->server);
 				$this->removeTask($task);
 			}elseif($task->isTerminated()){
-//				$info = $task->getTerminationInfo();
 				$this->removeTask($task);
-				//$this->server->getLogger()->critical("Could not execute asynchronous task " . (new \ReflectionClass($task))->getShortName() . ": " . $info["message"]);
-				//$this->server->getLogger()->critical("On ".$info["scope"].", line ".$info["line"] .", ".$info["function"]."()");
+				$this->server->getLogger()->critical("Could not execute asynchronous task " . get_class($task));				
 			}
 		}
 	}

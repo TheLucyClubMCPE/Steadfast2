@@ -243,6 +243,11 @@ class Server{
 	private $levelDefault = null;
 	
 	private $packetToSendQueue = array();
+	
+	private $packetSendArray = array(		
+		'1' => 0,
+		'2' => 0,
+	);
 
 	/**
 	 * @return string
@@ -824,6 +829,7 @@ class Server{
 	 * @param Player $player
 	 */
 	public function removePlayer(Player $player){
+		$this->packetSendArray[$player->getPacketSendNumber()]--;
 		if(isset($this->identifiers[$hash = spl_object_hash($player)])){
 			$identifier = $this->identifiers[$hash];
 			unset($this->players[$identifier]);
@@ -1480,7 +1486,8 @@ class Server{
 
 		$this->pluginManager = new PluginManager($this, $this->commandMap);
 		$this->pluginManager->subscribeToPermission(Server::BROADCAST_CHANNEL_ADMINISTRATIVE, $this->consoleSender);
-		$this->pluginManager->setUseTimings($this->getProperty("settings.enable-profiling", false));
+//		$this->pluginManager->setUseTimings($this->getProperty("settings.enable-profiling", false));
+		$this->pluginManager->setUseTimings(false);
 		$this->pluginManager->registerInterface(PharPluginLoader::class);
 
 		\set_exception_handler([$this, "exceptionHandler"]);
@@ -1919,10 +1926,10 @@ class Server{
 			$this->network->blockAddress($entry->getName(), -1);
 		}
 
-		if($this->getProperty("settings.send-usage", true) !== false){
-			$this->scheduler->scheduleDelayedRepeatingTask(new CallbackTask([$this, "sendUsage"]), 6000, 6000);
-			$this->sendUsage();
-		}
+//		if($this->getProperty("settings.send-usage", true) !== false){
+//			$this->scheduler->scheduleDelayedRepeatingTask(new CallbackTask([$this, "sendUsage"]), 6000, 6000);
+//			$this->sendUsage();
+//		}
 
 
 		if($this->getProperty("settings.upnp-forwarding", false) == true){
@@ -2150,6 +2157,16 @@ class Server{
 	public function addPlayer($identifier, Player $player){
 		$this->players[$identifier] = $player;
 		$this->identifiers[spl_object_hash($player)] = $identifier;
+		$min = 1;
+		$minVal = $this->packetSendArray[1];
+		foreach($this->packetSendArray as $key => $val){
+			if($val < $minVal) {
+				$minVal = $val;
+				$min = $key;
+			}
+		}
+		$this->packetSendArray[$min]++;
+		$player->setPacketSendNumber($min);
 	}
 
 	private function checkTickUpdates($currentTick){
@@ -2191,39 +2208,39 @@ class Server{
 		}
 	}
 
-	public function sendUsage(){
-		if($this->lastSendUsage instanceof SendUsageTask){
-			if(!$this->lastSendUsage->isGarbage()){ //do not call multiple times
-				return;
-			}
-		}
-
-		$plist = "";
-		foreach($this->getPluginManager()->getPlugins() as $p){
-			$d = $p->getDescription();
-			$plist .= str_replace([";", ":"], "", $d->getName()) . ":" . str_replace([";", ":"], "", $d->getVersion()) . ";";
-		}
-
-		$version = new VersionString();
-		$this->lastSendUsage = new SendUsageTask("http://stats.pocketmine.net/usage.php", [
-			"serverid" => 0, // todo: fix for real
-			"port" => $this->getPort(),
-			"os" => Utils::getOS(),
-			"name" => $this->getName(),
-			"memory_total" => $this->getConfigString("memory-limit"),
-			"memory_usage" => memory_get_usage(),
-			"php_version" => PHP_VERSION,
-			"version" => $version->get(true),
-			"build" => $version->getBuild(),
-			"mc_version" => \pocketmine\MINECRAFT_VERSION,
-			"protocol" => \pocketmine\network\protocol\Info::CURRENT_PROTOCOL,
-			"online" => count($this->players),
-			"max" => $this->getMaxPlayers(),
-			"plugins" => $plist,
-		]);
-
-		$this->scheduler->scheduleAsyncTask($this->lastSendUsage);
-	}
+//	public function sendUsage(){
+//		if($this->lastSendUsage instanceof SendUsageTask){
+//			if(!$this->lastSendUsage->isGarbage()){ //do not call multiple times
+//				return;
+//			}
+//		}
+//
+//		$plist = "";
+//		foreach($this->getPluginManager()->getPlugins() as $p){
+//			$d = $p->getDescription();
+//			$plist .= str_replace([";", ":"], "", $d->getName()) . ":" . str_replace([";", ":"], "", $d->getVersion()) . ";";
+//		}
+//
+//		$version = new VersionString();
+//		$this->lastSendUsage = new SendUsageTask("http://stats.pocketmine.net/usage.php", [
+//			"serverid" => 0, // todo: fix for real
+//			"port" => $this->getPort(),
+//			"os" => Utils::getOS(),
+//			"name" => $this->getName(),
+//			"memory_total" => $this->getConfigString("memory-limit"),
+//			"memory_usage" => memory_get_usage(),
+//			"php_version" => PHP_VERSION,
+//			"version" => $version->get(true),
+//			"build" => $version->getBuild(),
+//			"mc_version" => \pocketmine\MINECRAFT_VERSION,
+//			"protocol" => \pocketmine\network\protocol\Info::CURRENT_PROTOCOL,
+//			"online" => count($this->players),
+//			"max" => $this->getMaxPlayers(),
+//			"plugins" => $plist,
+//		]);
+//
+//		$this->scheduler->scheduleAsyncTask($this->lastSendUsage);
+//	}
 
 	/**
 	 * @return Network
@@ -2271,15 +2288,16 @@ class Server{
 		if($tickTime < $this->nextTick){
 			return false;
 		}
-
+//		TimingsHandler::reload();
 		Timings::$serverTickTimer->startTiming();
 
 		++$this->tickCounter;
-		
-		if(count($this->packetToSendQueue) > 0){
-			$task = new PacketSendTask($this->packetToSendQueue);
-			$this->scheduler->scheduleAsyncTask($task);
-			$this->packetToSendQueue = array();
+		foreach ($this->packetToSendQueue as $key => $packetToSendQueue) {
+			if(count($packetToSendQueue) > 0){
+				$task = new PacketSendTask($packetToSendQueue);
+				$this->scheduler->scheduleAsyncTask($task);
+				$this->packetToSendQueue[$key] = array();
+			}
 		}
 
 		$this->checkConsole();
@@ -2328,6 +2346,15 @@ class Server{
 		}
 		$this->nextTick += 0.05;
 
+//		if(microtime(true) - $tickTime > 0.05){
+//			$timingFolder = $this->getDataPath() . "timings/";
+//
+//			if(!file_exists($timingFolder)){
+//				mkdir($timingFolder, 0777);
+//			}
+//			$timings = $timingFolder . "timings.txt";
+//			TimingsHandler::printTimings($timings);
+//		}
 		return true;
 	}
 
@@ -2370,8 +2397,11 @@ class Server{
 		$this->mainInterface->putReadyPacket($buffer);
 	}
 	
-	public function addPacketToSendQueue($data){
-		$this->packetToSendQueue[] = $data;
+	public function addPacketToSendQueue($data, $packetSendNumber = 0){
+		if(!isset($this->packetToSendQueue[$packetSendNumber])) {
+			$this->packetToSendQueue[$packetSendNumber] = array();
+		}
+		$this->packetToSendQueue[$packetSendNumber][] = $data;
 	}
 
 }
