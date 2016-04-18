@@ -248,6 +248,8 @@ class Server{
 		'1' => 0,
 		'2' => 0,
 	);
+	
+	public $packetSender;
 
 	/**
 	 * @return string
@@ -1578,6 +1580,8 @@ class Server{
 		if($this->getAdvancedProperty("main.player-shuffle", 0) > 0){
 			$this->scheduler->scheduleDelayedRepeatingTask(new CallbackTask([$this, "shufflePlayers"]), $this->getAdvancedProperty("main.player-shuffle", 0), $this->getAdvancedProperty("main.player-shuffle", 0));
 		}
+		
+		$this->packetSender = new PacketSender($this->getLoader());
 
 		$this->start();
 	}
@@ -2329,6 +2333,10 @@ class Server{
 			foreach($this->levels as $level){
 				$level->clearCache();
 			}
+		}
+		
+		while(strlen($str = $this->packetSender->readThreadToMainPacket()) > 0){
+			$this->mainInterface->putReadyPacket($str);
 		}
 
 		Timings::$serverTickTimer->stopTiming();

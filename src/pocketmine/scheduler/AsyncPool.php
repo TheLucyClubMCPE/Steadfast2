@@ -58,12 +58,12 @@ class AsyncPool{
 //			$this->workers[$i]->setClassLoader($this->server->getLoader());
 			$this->workers[$i]->start();
 		}
-		for($i = $this->size + 2; $i < $this->size + 5; ++$i){
-			$this->workerUsage[$i] = 0;
-			$this->workers[$i] = new AsyncWorker();
+//		for($i = $this->size + 2; $i < $this->size + 3; ++$i){
+			$this->workerUsage[$this->size + 2] = 0;
+			$this->workers[$this->size + 2] = new AsyncWorker();
 //			$this->workers[$i]->setClassLoader($this->server->getLoader());
-			$this->workers[$i]->start();
-		}
+			$this->workers[$this->size + 2]->start();
+//		}
 	}
 
 	public function submitTask(AsyncTask $task){
@@ -79,14 +79,7 @@ class AsyncPool{
 				$selectedWorker = $this->size + 1;
 			}
 		} elseif($task instanceof PacketSendTask) {
-			$selectedWorker = mt_rand($this->size + 2, $this->size + 4);
-			$selectedTasks = $this->workerUsage[$selectedWorker];
-			for($i = $this->size + 2; $i < $this->size + 5; ++$i){
-				if($this->workerUsage[$i] < $selectedTasks){
-					$selectedWorker = $i;
-					$selectedTasks = $this->workerUsage[$i];
-				}
-			}
+			$selectedWorker = $this->size + 2;
 		} else {
 			$selectedWorker = mt_rand(0, $this->size - 1);
 			$selectedTasks = $this->workerUsage[$selectedWorker];
@@ -120,7 +113,7 @@ class AsyncPool{
 			$this->removeTask($task);
 		}
 
-		for($i = 0; $i < $this->size + 5; ++$i){
+		for($i = 0; $i < $this->size + 3; ++$i){
 			$this->workerUsage[$i] = 0;
 		}
 
