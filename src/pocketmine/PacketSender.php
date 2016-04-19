@@ -5,22 +5,43 @@ namespace pocketmine;
 use raklib\protocol\EncapsulatedPacket;
 use raklib\RakLib;
 use pocketmine\network\CachedEncapsulatedPacket;
+use pocketmine\network\protocol\DataPacket;
+use pocketmine\utils\Binary;
+use pocketmine\network\protocol\BatchPacket;
 
 class PacketSender extends \Thread {
 
 
-	protected $loader;
+	protected $classLoader;
 	protected $shutdown;
 	
 	protected $externalQueue;
 	protected $internalQueue;	
 
-	public function __construct(\ClassLoader $loader) {
-		$this->loader = $loader;
+	public function __construct(\ClassLoader $loader = null) {
 		$this->externalQueue = new \Threaded;
 		$this->internalQueue = new \Threaded;
-		$this->shutdown = false;	
-		$this->start();
+		$this->shutdown = false;
+		$this->classLoader = $loader;
+		$this->start(PTHREADS_INHERIT_NONE);
+	}
+	
+	protected function registerClassLoader(){
+		if(!interface_exists("ClassLoader", false)){
+			require(\pocketmine\PATH . "src/spl/ClassLoader.php");
+			require(\pocketmine\PATH . "src/spl/BaseClassLoader.php");
+			require(\pocketmine\PATH . "src/pocketmine/CompatibleClassLoader.php");
+		}
+		if($this->classLoader !== null){
+			$this->classLoader->register(true);
+		}
+	}
+	
+	public function run() {
+		$this->registerClassLoader();
+		gc_enable();
+		ini_set("memory_limit", -1);
+		$this->tickProcessor();
 	}
 
 	public function pushMainToThreadPacket($data) {
@@ -34,15 +55,8 @@ class PacketSender extends \Thread {
 		return $this->externalQueue->shift();
 	}
 
-	public function run() {
-		$this->loader->register(true);
-		gc_enable();
-		ini_set("memory_limit", -1);
-		$this->tickProcessor();
-	}
-
-	private function tickProcessor() {
-		while (!$this->shutdown) {
+	protected function tickProcessor() {
+		while (!$this->shutdown) {			
 			$start = microtime(true);
 			$this->tick();
 			$time = microtime(true) - $start;
@@ -52,18 +66,40 @@ class PacketSender extends \Thread {
 		}
 	}
 
-	private function tick() {
+	protected function tick() {				
 		while(is_object($data = $this->readMainToThreadPacket())){
 			$this->checkPacket($data);
 		}
 	}
 	
-	public function checkPacket($data) {
-		$result = $this->makeBuffer($data->identifier, $data->additionalChar, $data->packet, $data->needACK, $data->identifierACK);
+	protected function checkPacket($data) {
+		if($data->isBatch) {
+			$str = "";
+			foreach($data->packets as $p){
+				if($p instanceof DataPacket){
+					if(!$p->isEncoded){					
+						$p->encode();
+					}
+					$str .= Binary::writeInt(strlen($p->buffer)) . $p->buffer;
+				}else{
+					$str .= Binary::writeInt(strlen($p)) . $p;
+				}
+			}
+			$buffer = zlib_encode($str, ZLIB_ENCODING_DEFLATE, $data->networkCompressionLevel);
+			$pk = new BatchPacket();
+			$pk->payload = $buffer;
+			$pk->encode();
+			$pk->isEncoded = true;
+			foreach($data->targets as $target){
+				$result = $this->makeBuffer($target[0], $target[1], $pk, false, false);
+			}
+		} else {
+			$result = $this->makeBuffer($data->identifier, $data->additionalChar, $data->packet, $data->needACK, $data->identifierACK);;
+		}
 		$this->externalQueue[] = $result;
 	}
 
-	private function makeBuffer($identifier, $additionalChar, $fullPacket, $needACK, $identifierACK) {
+	protected function makeBuffer($identifier, $additionalChar, $fullPacket, $needACK, $identifierACK) {		
 		$pk = null;
 		if (!$fullPacket->isEncoded) {
 			$fullPacket->encode();

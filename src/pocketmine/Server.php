@@ -113,7 +113,7 @@ use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use pocketmine\utils\VersionString;
 use pocketmine\network\protocol\Info;
-use pocketmine\network\PacketSendTask;
+//use pocketmine\network\PacketSendTask;
 
 /**
  * The class that manages everything
@@ -242,14 +242,14 @@ class Server{
 	/** @var Level */
 	private $levelDefault = null;
 	
-	private $packetToSendQueue = array();
+//	private $packetToSendQueue = array();
 	
 	private $packetSendArray = array(		
 		'1' => 0,
 		'2' => 0,
 	);
 	
-	public $packetSender;
+	public $packetSender = array();
 
 	/**
 	 * @return string
@@ -1581,8 +1581,7 @@ class Server{
 			$this->scheduler->scheduleDelayedRepeatingTask(new CallbackTask([$this, "shufflePlayers"]), $this->getAdvancedProperty("main.player-shuffle", 0), $this->getAdvancedProperty("main.player-shuffle", 0));
 		}
 		
-		$this->packetSender = new PacketSender($this->getLoader());
-
+		
 		$this->start();
 	}
 
@@ -1720,7 +1719,8 @@ class Server{
 		$data->targets = $targets;
 		$data->networkCompressionLevel = $this->networkCompressionLevel;
 		$data->isBatch = true;
-		$this->addPacketToSendQueue($data);
+		$this->packetSender[0]->pushMainToThreadPacket($data);
+//		$this->addPacketToSendQueue($data);
 	}
 	
 	public function broadcastPacketsCallback($data, array $identifiers){
@@ -1959,6 +1959,11 @@ class Server{
 
 		$this->logger->info("Done (" . round(microtime(true) - \pocketmine\START_TIME, 3) . 's)! For help, type "help" or "?"');
 
+		for ($i = 0; $i < 3; $i++) {
+			$this->packetSender[$i] = new PacketSender($this->getLoader());
+		}
+
+		
 		$this->tickProcessor();
 		$this->forceShutdown();
 
@@ -2296,15 +2301,21 @@ class Server{
 		Timings::$serverTickTimer->startTiming();
 
 		++$this->tickCounter;
-		foreach ($this->packetToSendQueue as $key => $packetToSendQueue) {
-			if(count($packetToSendQueue) > 0){
-				$task = new PacketSendTask($packetToSendQueue);
-				$this->scheduler->scheduleAsyncTask($task);
-				$this->packetToSendQueue[$key] = array();
-			}
-		}
+//		foreach ($this->packetToSendQueue as $key => $packetToSendQueue) {
+//			if(count($packetToSendQueue) > 0){
+//				$task = new PacketSendTask($packetToSendQueue);
+//				$this->scheduler->scheduleAsyncTask($task);
+//				$this->packetToSendQueue[$key] = array();
+//			}
+//		}
 
 		$this->checkConsole();
+		
+		for ($i = 0; $i < 3; $i++) {
+			while(strlen($str = $this->packetSender[$i]->readThreadToMainPacket()) > 0){
+				$this->mainInterface->putReadyPacket($str);
+			}
+		}
 
 		Timings::$connectionTimer->startTiming();
 		$this->network->processInterfaces();
@@ -2335,10 +2346,6 @@ class Server{
 			}
 		}
 		
-		while(strlen($str = $this->packetSender->readThreadToMainPacket()) > 0){
-			$this->mainInterface->putReadyPacket($str);
-		}
-
 		Timings::$serverTickTimer->stopTiming();
 
 		TimingsHandler::tick();
@@ -2405,11 +2412,11 @@ class Server{
 		$this->mainInterface->putReadyPacket($buffer);
 	}
 	
-	public function addPacketToSendQueue($data, $packetSendNumber = 0){
-		if(!isset($this->packetToSendQueue[$packetSendNumber])) {
-			$this->packetToSendQueue[$packetSendNumber] = array();
-		}
-		$this->packetToSendQueue[$packetSendNumber][] = $data;
-	}
+//	public function addPacketToSendQueue($data, $packetSendNumber = 0){
+//		if(!isset($this->packetToSendQueue[$packetSendNumber])) {
+//			$this->packetToSendQueue[$packetSendNumber] = array();
+//		}
+//		$this->packetToSendQueue[$packetSendNumber][] = $data;
+//	}
 
 }

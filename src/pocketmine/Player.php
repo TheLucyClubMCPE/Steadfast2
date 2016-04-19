@@ -867,7 +867,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			$data->identifierACK = $this->interface->getACKIdentifier($this->identifier);
 		}
 		$data->isBatch = false;
-		$this->server->packetSender->pushMainToThreadPacket($data);
+		$this->server->packetSender[$this->packetSendNumber]->pushMainToThreadPacket($data);
 //		$this->server->addPacketToSendQueue($data, $this->packetSendNumber);
 		return true;
 	}
