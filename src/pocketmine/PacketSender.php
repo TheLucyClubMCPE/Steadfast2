@@ -67,7 +67,7 @@ class PacketSender extends \Thread {
 	}
 
 	protected function tick() {				
-		while(is_object($data = $this->readMainToThreadPacket())){
+		while(($data = $this->readMainToThreadPacket())){
 			$this->checkPacket($data);
 		}
 	}

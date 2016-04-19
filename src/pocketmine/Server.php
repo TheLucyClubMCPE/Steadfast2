@@ -113,7 +113,6 @@ use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use pocketmine\utils\VersionString;
 use pocketmine\network\protocol\Info;
-//use pocketmine\network\PacketSendTask;
 
 /**
  * The class that manages everything
@@ -241,9 +240,7 @@ class Server{
 
 	/** @var Level */
 	private $levelDefault = null;
-	
-//	private $packetToSendQueue = array();
-	
+		
 	private $packetSendArray = array(		
 		'1' => 0,
 		'2' => 0,
@@ -1488,8 +1485,7 @@ class Server{
 
 		$this->pluginManager = new PluginManager($this, $this->commandMap);
 		$this->pluginManager->subscribeToPermission(Server::BROADCAST_CHANNEL_ADMINISTRATIVE, $this->consoleSender);
-//		$this->pluginManager->setUseTimings($this->getProperty("settings.enable-profiling", false));
-		$this->pluginManager->setUseTimings(false);
+		$this->pluginManager->setUseTimings($this->getProperty("settings.enable-profiling", false));
 		$this->pluginManager->registerInterface(PharPluginLoader::class);
 
 		\set_exception_handler([$this, "exceptionHandler"]);
@@ -1580,7 +1576,6 @@ class Server{
 		if($this->getAdvancedProperty("main.player-shuffle", 0) > 0){
 			$this->scheduler->scheduleDelayedRepeatingTask(new CallbackTask([$this, "shufflePlayers"]), $this->getAdvancedProperty("main.player-shuffle", 0), $this->getAdvancedProperty("main.player-shuffle", 0));
 		}
-		
 		
 		$this->start();
 	}
@@ -1720,7 +1715,6 @@ class Server{
 		$data->networkCompressionLevel = $this->networkCompressionLevel;
 		$data->isBatch = true;
 		$this->packetSender[0]->pushMainToThreadPacket($data);
-//		$this->addPacketToSendQueue($data);
 	}
 	
 	public function broadcastPacketsCallback($data, array $identifiers){
@@ -1963,7 +1957,6 @@ class Server{
 			$this->packetSender[$i] = new PacketSender($this->getLoader());
 		}
 
-		
 		$this->tickProcessor();
 		$this->forceShutdown();
 
@@ -2160,7 +2153,6 @@ class Server{
 		}
 		
 		$this->batchPackets([$p], [$pk]);
-//		$p->dataPacket($pk);
 	}
 
 	public function addPlayer($identifier, Player $player){
@@ -2297,18 +2289,11 @@ class Server{
 		if($tickTime < $this->nextTick){
 			return false;
 		}
-//		TimingsHandler::reload();
+
 		Timings::$serverTickTimer->startTiming();
 
 		++$this->tickCounter;
-//		foreach ($this->packetToSendQueue as $key => $packetToSendQueue) {
-//			if(count($packetToSendQueue) > 0){
-//				$task = new PacketSendTask($packetToSendQueue);
-//				$this->scheduler->scheduleAsyncTask($task);
-//				$this->packetToSendQueue[$key] = array();
-//			}
-//		}
-
+		
 		$this->checkConsole();
 		
 		for ($i = 0; $i < 3; $i++) {
@@ -2346,6 +2331,7 @@ class Server{
 			}
 		}
 		
+
 		Timings::$serverTickTimer->stopTiming();
 
 		TimingsHandler::tick();
@@ -2361,15 +2347,6 @@ class Server{
 		}
 		$this->nextTick += 0.05;
 
-//		if(microtime(true) - $tickTime > 0.05){
-//			$timingFolder = $this->getDataPath() . "timings/";
-//
-//			if(!file_exists($timingFolder)){
-//				mkdir($timingFolder, 0777);
-//			}
-//			$timings = $timingFolder . "timings.txt";
-//			TimingsHandler::printTimings($timings);
-//		}
 		return true;
 	}
 
@@ -2411,12 +2388,5 @@ class Server{
 	public function sendPacketBuffer($buffer) {
 		$this->mainInterface->putReadyPacket($buffer);
 	}
-	
-//	public function addPacketToSendQueue($data, $packetSendNumber = 0){
-//		if(!isset($this->packetToSendQueue[$packetSendNumber])) {
-//			$this->packetToSendQueue[$packetSendNumber] = array();
-//		}
-//		$this->packetToSendQueue[$packetSendNumber][] = $data;
-//	}
 
 }

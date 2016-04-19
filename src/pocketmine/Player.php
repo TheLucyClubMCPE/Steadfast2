@@ -851,7 +851,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		if($this->connected === false){
 			return false;
 		}
-
 		$this->server->getPluginManager()->callEvent($ev = new DataPacketSendEvent($this, $packet));
 		if($ev->isCancelled()){
 			return false;
@@ -868,7 +867,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		}
 		$data->isBatch = false;
 		$this->server->packetSender[$this->packetSendNumber]->pushMainToThreadPacket($data);
-//		$this->server->addPacketToSendQueue($data, $this->packetSendNumber);
 		return true;
 	}
 
@@ -2978,17 +2976,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	 */
 	public function close($message = "", $reason = "generic reason"){
 		
-		$thread = \Thread::getCurrentThread();
-		if($thread !== null){
-			$backtrace = debug_backtrace(0, 30);
-			$result = '';
-			foreach ($backtrace as $k => $v) {
-				$result .= "[line ".$backtrace[$k]['line']."] ".$backtrace[$k]['class']." -> ".$backtrace[$k]['function'].PHP_EOL;
-			}
-			var_dump($result);
-			return;
-		}
-		
 		foreach($this->tasks as $task){
 			$task->cancel();
 		}
@@ -2998,7 +2985,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 				$pk = new DisconnectPacket;
 				$pk->message = $reason;
 				$this->directDataPacket($pk);
-//				$this->dataPacket($pk);
 			}
 
 			$this->connected = false;
