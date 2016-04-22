@@ -28,12 +28,16 @@ namespace pocketmine\network\protocol;
 interface Info{
 
 	/**
-	 * Actual Minecraft: PE protocol version
+	 * Minecraft: PE protocol versions
 	 */
-	const CURRENT_PROTOCOL = 39;
-	const GREEN_PROTOCOL = 46;
-//	const CURRENT_PROTOCOL = 42;
+	const CURRENT_PROTOCOL = 38;
+	const NEWEST_PROTOCOL = 46;
+	const OLDEST_PROTOCOL = 38;
+	const ACCEPTED_PROTOCOLS = [38, 39, 40, 41, 42, 43, 44, 45, 46];
 
+	/**
+	 * Minecraft: PE packets
+	 */
 	const LOGIN_PACKET = 0x8f;
 	const PLAY_STATUS_PACKET = 0x90;
 	const DISCONNECT_PACKET = 0x91;

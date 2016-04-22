@@ -272,7 +272,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	}
 
 	public function getClientSecret(){
-		return $this->clientSecretId;
+		return $this->clientSecret;
 	}
 
 	public function isBanned(){
@@ -1669,10 +1669,15 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 				$this->setNameTag($this->username);
 				$this->iusername = strtolower($this->username);
 				
-				if($packet->protocol1 != ProtocolInfo::CURRENT_PROTOCOL){
-					if($packet->protocol1 < ProtocolInfo::CURRENT_PROTOCOL - 1) {//this is very very bad, remove it asap
+				//if(!in_array($packet->protocol1, ProtocolInfo::ACCEPTED_PROTOCOLS)){
+					// in-case something goes wrong
+					// $message = "change your client";
+					if($packet->protocol1 < ProtocolInfo::OLDEST_PROTOCOL) {
 						$message = "upgrade";
-						
+					} elseif($packet->protocol1 > ProtocolInfo::NEWEST_PROTOCOL) {
+						$message = "downgrade";
+					}
+					if(isset($message)) {
 						$pk = new PlayStatusPacket();
 						$pk->status = PlayStatusPacket::LOGIN_FAILED_CLIENT;
 						$this->dataPacket($pk);
@@ -1680,17 +1685,8 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 						//Timings::$timerLoginPacket->stopTiming();
 						return;
 					}
-//					} else {
-//						$message = "downgrade";
-//					}
-//
-//					$pk = new PlayStatusPacket();
-//					$pk->status = PlayStatusPacket::LOGIN_FAILED_CLIENT;
-//					$this->dataPacket($pk);
-//					$this->close("", TextFormat::RED . "Please " . $message . " to MCPE " . TextFormat::GREEN . $this->getServer()->getVersion() . TextFormat::RED . " to join.", false);
-//
-//					return;
-				}
+
+				//}
 				
 				$this->randomClientId = $packet->clientId;
 				$this->loginData = ["clientId" => $packet->clientId, "loginData" => null];
@@ -1893,9 +1889,9 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 
 				$this->server->sendFullPlayerListData($this);
 				$this->server->sendRecipeList($this);
-				
-//				if($this->protocol != Info::CURRENT_PROTOCOL) {
-//				if($this->protocol < Info::CURRENT_PROTOCOL) {
+
+//				if($this->protocol != Info::OLDEST_PROTOCOL) {
+//				if($this->protocol < Info::OLDEST_PROTOCOL) {
 //					$this->sendMessage(TextFormat::RED . "You are using an unsupported version of MCPE we recommend switching to " . TextFormat::GREEN . $this->getServer()->getVersion() . TextFormat::RED .".");
 //					$this->sendTip(TextFormat::RED . "You are using an unsupported version of MCPE we recommend switching to " . TextFormat::GREEN .$this->getServer()->getVersion() . TextFormat::RED .".");
 //				}
