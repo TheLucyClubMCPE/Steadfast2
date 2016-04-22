@@ -1672,7 +1672,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 				//if(!in_array($packet->protocol1, ProtocolInfo::ACCEPTED_PROTOCOLS)){
 					// in-case something goes wrong
 					// $message = "change your client";
-					if($packet->protocol1 < ProtocolInfo::OLDEST_PROTOCOL) {
+					if($packet->protocol1 < ProtocolInfo::OLDEST_PROTOCOL - 1) {
 						$message = "upgrade";
 					} elseif($packet->protocol1 > ProtocolInfo::NEWEST_PROTOCOL) {
 						$message = "downgrade";
