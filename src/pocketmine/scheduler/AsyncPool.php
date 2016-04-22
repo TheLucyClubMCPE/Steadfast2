@@ -51,7 +51,7 @@ class AsyncPool{
 			$this->workers[$i]->setClassLoader($this->server->getLoader());
 			$this->workers[$i]->start();
 		}
-		for($i = $this->size; $i < $this->size + 2; ++$i){
+		for($i = $this->size; $i < $this->size + 1; ++$i){
 			$this->workerUsage[$i] = 0;
 			$this->workers[$i] = new AsyncWorker();
 			$this->workers[$i]->setClassLoader($this->server->getLoader());
@@ -66,21 +66,18 @@ class AsyncPool{
 
 		$this->tasks[$task->getTaskId()] = $task;
 		if($task instanceof ChunkRequestTask) {
-			if($this->workerUsage[$this->size] <= $this->workerUsage[$this->size + 1]){
-				$selectedWorker = $this->size;
-			} else {
-				$selectedWorker = $this->size + 1;
-			}
+			$selectedWorker = $this->size;
 		} else {
 			$selectedWorker = mt_rand(0, $this->size - 1);
-			$selectedTasks = $this->workerUsage[$selectedWorker];
-			for($i = 0; $i < $this->size; ++$i){
-				if($this->workerUsage[$i] < $selectedTasks){
-					$selectedWorker = $i;
-					$selectedTasks = $this->workerUsage[$i];
-				}
+		}
+		$selectedTasks = $this->workerUsage[$selectedWorker];
+		for($i = 0; $i < $this->size; ++$i){
+			if($this->workerUsage[$i] < $selectedTasks){
+				$selectedWorker = $i;
+				$selectedTasks = $this->workerUsage[$i];
 			}
 		}
+		
 		$this->workers[$selectedWorker]->stack($task);
 		$this->workerUsage[$selectedWorker]++;
 		$this->taskWorkers[$task->getTaskId()] = $selectedWorker;
@@ -105,7 +102,7 @@ class AsyncPool{
 			$this->removeTask($task);
 		}
 
-		for($i = 0; $i < $this->size + 2; ++$i){
+		for($i = 0; $i < $this->size + 1; ++$i){
 			$this->workerUsage[$i] = 0;
 		}
 

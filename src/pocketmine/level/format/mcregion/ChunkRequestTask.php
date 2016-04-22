@@ -92,6 +92,7 @@ class ChunkRequestTask extends AsyncTask {
 			foreach ($res->result as $result) {	
 				$level->chunkRequestCallback($result['chunkX'], $result['chunkZ'], $result['result']);
 			}
+			$this->setResult(null);
 		}
 	}
 }
