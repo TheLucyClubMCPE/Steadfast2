@@ -2454,7 +2454,7 @@ class Level implements ChunkManager, Metadatable{
 			if(!isset($this->motionToSend[$p->getIdentifier()])){
 				$this->motionToSend[$p->getIdentifier()] = array(
 					'data' => array(),
-					'additionalChar' => $p->protocol <= Info::CURRENT_PROTOCOL ? '' : chr(0x8e)
+					'additionalChar' => $p->protocol <= Info::OLDEST_PROTOCOL ? '' : chr(0x8e)
 				);
 			}
 			$this->motionToSend[$p->getIdentifier()]['data'][] = $motion;
@@ -2467,7 +2467,7 @@ class Level implements ChunkManager, Metadatable{
 			if(!isset($this->moveToSend[$p->getIdentifier()])){
 				$this->moveToSend[$p->getIdentifier()] = array(
 					'data' => array(),
-					'additionalChar' => $p->protocol <= Info::CURRENT_PROTOCOL ? '' : chr(0x8e)
+					'additionalChar' => $p->protocol <= Info::OLDEST_PROTOCOL ? '' : chr(0x8e)
 				);
 			}
 			$this->moveToSend[$p->getIdentifier()]['data'][] = $move;

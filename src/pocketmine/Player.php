@@ -857,7 +857,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		}
 		
 		$data = new \stdClass();
-		$data->additionalChar = $this->protocol <= ProtocolInfo::CURRENT_PROTOCOL ? '' : chr(0x8e);
+		$data->additionalChar = $this->protocol <= ProtocolInfo::OLDEST_PROTOCOL ? '' : chr(0x8e);
 		$data->identifier = $this->identifier;
 		$data->packet = $packet->clearObject();
 		$data->needACK = $needACK;

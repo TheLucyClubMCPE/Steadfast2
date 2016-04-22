@@ -1700,7 +1700,7 @@ class Server{
 	public function batchPackets(array $players, array $packets, $forceSync = true){
 		$targets = [];
 		foreach($players as $p){
-			$targets[] = array($p->getIdentifier(), $p->protocol <= Info::CURRENT_PROTOCOL ? '' : chr(0x8e));
+			$targets[] = array($p->getIdentifier(), $p->protocol <= Info::OLDEST_PROTOCOL ? '' : chr(0x8e));
 		}
 		$data = new \stdClass();
 		$data->packets = $packets;
