@@ -61,8 +61,8 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 	private $interface;
 
 	public $count = 0;
-	public $maxcount = 31360;
-	public $name = "Lifeboat Network";
+	public $maxcount = 500;
+	public $name = "Hypixel Pocket ALPHA";
 
 	public function setCount($count, $maxcount) {
 		$this->count = $count;
